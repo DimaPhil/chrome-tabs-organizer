@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Tabs Organizer",
+  "version": "1.0.0",
+  "description": "Organize your browser tabs into categories",
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Open Tabs Organizer"
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab/index.html"
+  },
+  "background": {
+    "service_worker": "background/index.js",
+    "type": "module"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
