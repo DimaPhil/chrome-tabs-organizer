@@ -1,6 +1,7 @@
 import type { StorageData } from '@/types';
 import { DEFAULT_STORAGE_DATA } from '@/types';
 import { DEFAULT_CATEGORIES } from '@/types/category';
+import { withRetry } from '@/utils/retry';
 
 const STORAGE_KEY = 'tabsOrganizerData';
 
@@ -14,25 +15,28 @@ class StorageService {
   }
 
   async load(): Promise<StorageData> {
-    const result = await this.storage.get(STORAGE_KEY);
-    const data = result[STORAGE_KEY] as StorageData | undefined;
+    return withRetry(async () => {
+      const result = await this.storage.get(STORAGE_KEY);
+      const data = result[STORAGE_KEY] as StorageData | undefined;
 
-    if (!data) {
-      // Initialize with defaults
-      const initialData: StorageData = {
-        ...DEFAULT_STORAGE_DATA,
-        categories: DEFAULT_CATEGORIES,
-        categoryOrder: DEFAULT_CATEGORIES.map((c) => c.id),
-      };
-      await this.save(initialData);
-      return initialData;
-    }
+      if (!data) {
+        const initialData: StorageData = {
+          ...DEFAULT_STORAGE_DATA,
+          categories: DEFAULT_CATEGORIES,
+          categoryOrder: DEFAULT_CATEGORIES.map((c) => c.id),
+        };
+        await this.save(initialData);
+        return initialData;
+      }
 
-    return data;
+      return data;
+    });
   }
 
   async save(data: StorageData): Promise<void> {
-    await this.storage.set({ [STORAGE_KEY]: data });
+    return withRetry(async () => {
+      await this.storage.set({ [STORAGE_KEY]: data });
+    });
   }
 
   async getAssignment(url: string): Promise<string | null> {

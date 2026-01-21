@@ -1,6 +1,7 @@
 import { type MouseEvent } from 'react';
 import type { Tab } from '@/types';
-import { cn, truncateUrl, formatRelativeTime, FALLBACK_FAVICON } from '@/utils';
+import { cn, truncateUrl, formatRelativeTime, FALLBACK_FAVICON, handleFaviconError } from '@/utils';
+import { PinnedIndicator } from './PinnedIndicator';
 
 interface TabExpandedProps {
   tab: Tab;
@@ -26,10 +27,6 @@ export function TabExpanded({
     onContextMenu(e, tab);
   };
 
-  const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.src = FALLBACK_FAVICON;
-  };
-
   return (
     <div
       className={cn(
@@ -42,20 +39,8 @@ export function TabExpanded({
       onClick={handleClick}
       onContextMenu={handleContextMenu}
     >
-      {/* Pinned indicator */}
-      {tab.pinned && (
-        <div className="absolute -top-1 -left-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-          <svg
-            className="w-2.5 h-2.5 text-primary-foreground"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M5 5a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 002 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 002-2V5z" />
-          </svg>
-        </div>
-      )}
+      {tab.pinned && <PinnedIndicator size="md" />}
 
-      {/* Favicon - larger */}
       <img
         src={tab.favIconUrl || FALLBACK_FAVICON}
         alt=""
@@ -63,9 +48,7 @@ export function TabExpanded({
         onError={handleFaviconError}
       />
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Title */}
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-card-foreground truncate">{tab.title}</span>
           {tab.active && (
@@ -73,12 +56,10 @@ export function TabExpanded({
           )}
         </div>
 
-        {/* URL */}
         <div className="text-xs text-muted-foreground truncate mt-0.5">
           {truncateUrl(tab.url, 60)}
         </div>
 
-        {/* Last accessed */}
         {tab.lastAccessed && (
           <div className="text-xs text-muted-foreground mt-1">
             {formatRelativeTime(tab.lastAccessed)}

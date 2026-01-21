@@ -2,7 +2,8 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { type MouseEvent } from 'react';
 import type { Tab } from '@/types';
-import { cn, truncateUrl, formatRelativeTime, FALLBACK_FAVICON } from '@/utils';
+import { cn, truncateUrl, formatRelativeTime, FALLBACK_FAVICON, handleFaviconError } from '@/utils';
+import { PinnedIndicator } from './PinnedIndicator';
 
 interface SortableTabExpandedProps {
   tab: Tab;
@@ -40,10 +41,6 @@ export function SortableTabExpanded({
     onContextMenu(e, tab);
   };
 
-  const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.src = FALLBACK_FAVICON;
-  };
-
   return (
     <div
       ref={setNodeRef}
@@ -61,27 +58,14 @@ export function SortableTabExpanded({
       onClick={handleClick}
       onContextMenu={handleContextMenu}
     >
-      {/* Drag handle indicator */}
       <div className="absolute top-1/2 left-1 -translate-y-1/2 text-muted-foreground opacity-0 group-hover:opacity-50 transition-opacity">
         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
           <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
         </svg>
       </div>
 
-      {/* Pinned indicator */}
-      {tab.pinned && (
-        <div className="absolute -top-1 -left-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-          <svg
-            className="w-2.5 h-2.5 text-primary-foreground"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M5 5a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 002 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 002-2V5z" />
-          </svg>
-        </div>
-      )}
+      {tab.pinned && <PinnedIndicator size="md" />}
 
-      {/* Favicon - larger */}
       <img
         src={tab.favIconUrl || FALLBACK_FAVICON}
         alt=""
@@ -89,9 +73,7 @@ export function SortableTabExpanded({
         onError={handleFaviconError}
       />
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Title */}
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-card-foreground truncate">{tab.title}</span>
           {tab.active && (
@@ -99,12 +81,10 @@ export function SortableTabExpanded({
           )}
         </div>
 
-        {/* URL */}
         <div className="text-xs text-muted-foreground truncate mt-0.5">
           {truncateUrl(tab.url, 60)}
         </div>
 
-        {/* Last accessed */}
         {tab.lastAccessed && (
           <div className="text-xs text-muted-foreground mt-1">
             {formatRelativeTime(tab.lastAccessed)}

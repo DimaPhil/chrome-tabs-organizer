@@ -1,9 +1,10 @@
 import type { Tab, Category } from '@/types';
 import { UNCATEGORIZED_ID, DEFAULT_CATEGORIES } from '@/types/category';
-import type { AppAction } from './actions';
+import type { AppAction, AppError } from './actions';
 
 export interface AppState {
   loading: boolean;
+  error: AppError | null;
   tabs: Tab[];
   categories: Category[];
   assignments: Map<string, string>; // url → categoryId (URL is the key for persistence)
@@ -15,6 +16,7 @@ export interface AppState {
 
 export const initialState: AppState = {
   loading: true,
+  error: null,
   tabs: [],
   categories: DEFAULT_CATEGORIES,
   assignments: new Map(),
@@ -28,6 +30,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
+
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+
+    case 'CLEAR_ERROR':
+      return { ...state, error: null };
 
     case 'SET_TABS':
       return { ...state, tabs: action.payload };

@@ -29,6 +29,7 @@ interface AppContextValue {
   switchToTab: (tabId: number) => Promise<void>;
   closeTab: (tabId: number) => Promise<void>;
   pinTab: (tabId: number, pinned: boolean) => Promise<void>;
+  clearError: () => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -40,26 +41,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function initialize() {
       try {
-        // Load storage data
         const storageData = await storageService.load();
         dispatch(actions.loadStorage(storageData));
 
-        // Load tabs
         const tabs = await tabService.getTabs();
         dispatch(actions.setTabs(tabs));
 
-        // Assign uncategorized tabs based on stored assignment or default
         const newAssignments: Array<{ url: string; categoryId: string }> = [];
         for (const tab of tabs) {
           const existingAssignment = storageData.assignments.find((a) => a.url === tab.url);
           if (!existingAssignment) {
-            // New tab URL - assign to uncategorized
             const categoryId = UNCATEGORIZED_ID;
             newAssignments.push({ url: tab.url, categoryId });
           }
         }
 
-        // Batch update assignments for new tabs
         for (const { url, categoryId } of newAssignments) {
           dispatch(actions.setAssignment(url, categoryId));
           await storageService.setAssignment(url, categoryId);
@@ -68,6 +64,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch(actions.setLoading(false));
       } catch (error) {
         console.error('Failed to initialize:', error);
+        const message = error instanceof Error ? error.message : 'Failed to load data';
+        dispatch(actions.setError('INIT_ERROR', message));
         dispatch(actions.setLoading(false));
       }
     }
@@ -220,6 +218,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await tabService.pinTab(tabId, pinned);
   }, []);
 
+  // Action: Clear error
+  const clearError = useCallback(() => {
+    dispatch(actions.clearError());
+  }, []);
+
   const value: AppContextValue = {
     state,
     dispatch,
@@ -234,6 +237,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     switchToTab,
     closeTab,
     pinTab,
+    clearError,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

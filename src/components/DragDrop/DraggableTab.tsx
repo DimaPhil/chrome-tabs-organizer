@@ -1,9 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { type MouseEvent, useState, useRef } from 'react';
+import { type MouseEvent } from 'react';
 import type { Tab } from '@/types';
-import { cn, FALLBACK_FAVICON } from '@/utils';
-import { TabTooltip } from '@/components/Tab/TabTooltip';
+import { cn, FALLBACK_FAVICON, handleFaviconError } from '@/utils';
+import { useTooltipPosition } from '@/hooks';
+import { PinnedIndicator, TabTooltip } from '@/components/Tab';
 
 interface DraggableTabProps {
   tab: Tab;
@@ -22,10 +23,7 @@ export function DraggableTab({
   onClick,
   onContextMenu,
 }: DraggableTabProps) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const elementRef = useRef<HTMLDivElement>(null);
+  const { isVisible, position, elementRef, handlers } = useTooltipPosition();
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `tab-${tab.id}`,
@@ -48,31 +46,6 @@ export function DraggableTab({
     onContextMenu(e, tab);
   };
 
-  const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.src = FALLBACK_FAVICON;
-  };
-
-  const handleMouseEnter = () => {
-    hoverTimeoutRef.current = setTimeout(() => {
-      const rect = elementRef.current?.getBoundingClientRect();
-      if (rect) {
-        const spaceBelow = window.innerHeight - rect.bottom;
-        const y = spaceBelow > 200 ? rect.bottom + 8 : rect.top - 8;
-        setTooltipPosition({ x: rect.left, y });
-      }
-      setIsHovered(true);
-    }, 400);
-  };
-
-  const handleMouseLeave = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    setIsHovered(false);
-  };
-
-  // Combine refs
   const combinedRef = (node: HTMLDivElement | null) => {
     setNodeRef(node);
     (elementRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
@@ -95,23 +68,11 @@ export function DraggableTab({
         )}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onMouseEnter={handlers.onMouseEnter}
+        onMouseLeave={handlers.onMouseLeave}
       >
-        {/* Pinned indicator */}
-        {tab.pinned && (
-          <div className="absolute -top-1 -left-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
-            <svg
-              className="w-2 h-2 text-primary-foreground"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path d="M5 5a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 002 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 002-2V5z" />
-            </svg>
-          </div>
-        )}
+        {tab.pinned && <PinnedIndicator size="sm" />}
 
-        {/* Favicon */}
         <img
           src={tab.favIconUrl || FALLBACK_FAVICON}
           alt=""
@@ -119,24 +80,21 @@ export function DraggableTab({
           onError={handleFaviconError}
         />
 
-        {/* Title */}
         <span className="text-sm text-card-foreground truncate flex-1 min-w-0">{tab.title}</span>
 
-        {/* Active indicator */}
         {tab.active && (
           <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" title="Active tab" />
         )}
       </div>
 
-      {/* Tooltip */}
-      {isHovered && !isDragging && (
+      {isVisible && !isDragging && (
         <div
           className="fixed z-[100] pointer-events-none animate-in fade-in duration-150"
           style={{
-            left: tooltipPosition.x,
-            top: tooltipPosition.y,
+            left: position.x,
+            top: position.y,
             transform:
-              tooltipPosition.y > (elementRef.current?.getBoundingClientRect().bottom ?? 0)
+              position.y > (elementRef.current?.getBoundingClientRect().bottom ?? 0)
                 ? 'translateY(0)'
                 : 'translateY(-100%)',
           }}

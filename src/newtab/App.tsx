@@ -1,22 +1,31 @@
 import { useEffect } from 'react';
-import { AppProvider } from '@/store/AppContext';
+import { AppProvider, useAppContext } from '@/store/AppContext';
 import { Dashboard } from '@/components/Dashboard/Dashboard';
+import { ErrorBoundary, ErrorNotification } from '@/components/common';
 import { useTheme } from '@/hooks/useTheme';
 
 function AppContent() {
   const { isDark } = useTheme();
+  const { state, clearError } = useAppContext();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
 
-  return <Dashboard />;
+  return (
+    <>
+      <Dashboard />
+      <ErrorNotification error={state.error} onDismiss={clearError} />
+    </>
+  );
 }
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

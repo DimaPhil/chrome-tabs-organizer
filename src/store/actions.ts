@@ -1,7 +1,15 @@
 import type { Tab, Category, StorageData } from '@/types';
 
+export interface AppError {
+  message: string;
+  code: string;
+  timestamp: number;
+}
+
 export type AppAction =
   | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: AppError | null }
+  | { type: 'CLEAR_ERROR' }
   | { type: 'SET_TABS'; payload: Tab[] }
   | { type: 'ADD_TAB'; payload: Tab }
   | { type: 'REMOVE_TAB'; payload: number }
@@ -25,6 +33,15 @@ export const actions = {
   setLoading: (loading: boolean): AppAction => ({
     type: 'SET_LOADING',
     payload: loading,
+  }),
+
+  setError: (code: string, message: string): AppAction => ({
+    type: 'SET_ERROR',
+    payload: { code, message, timestamp: Date.now() },
+  }),
+
+  clearError: (): AppAction => ({
+    type: 'CLEAR_ERROR',
   }),
 
   setTabs: (tabs: Tab[]): AppAction => ({
