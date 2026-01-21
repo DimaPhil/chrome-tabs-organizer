@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tabs Organizer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Organize your browser tabs into categories",
   "permissions": [
     "tabs",

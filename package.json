@@ -1,6 +1,6 @@
 {
   "name": "chrome-tabs-organizer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Chrome extension to organize browser tabs into categories",
   "type": "module",
   "scripts": {
