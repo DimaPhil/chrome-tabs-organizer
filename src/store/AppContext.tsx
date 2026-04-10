@@ -4,6 +4,7 @@ import {
   useReducer,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
   type Dispatch,
 } from 'react';
@@ -36,6 +37,12 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const tabsRef = useRef<Tab[]>([]);
+
+  // Keep tabsRef in sync with state for use in event handlers
+  useEffect(() => {
+    tabsRef.current = state.tabs;
+  }, [state.tabs]);
 
   // Initial data loading
   useEffect(() => {
@@ -47,18 +54,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const tabs = await tabService.getTabs();
         dispatch(actions.setTabs(tabs));
 
-        const newAssignments: Array<{ url: string; categoryId: string }> = [];
+        // Clean up stale assignments for URLs no longer open
+        const currentUrls = new Set(tabs.map((t) => t.url));
+        await storageService.cleanupStaleAssignments(currentUrls);
+
+        // Auto-assign uncategorized in-memory only (don't pollute storage)
         for (const tab of tabs) {
           const existingAssignment = storageData.assignments.find((a) => a.url === tab.url);
           if (!existingAssignment) {
-            const categoryId = UNCATEGORIZED_ID;
-            newAssignments.push({ url: tab.url, categoryId });
+            dispatch(actions.setAssignment(tab.url, UNCATEGORIZED_ID));
           }
-        }
-
-        for (const { url, categoryId } of newAssignments) {
-          dispatch(actions.setAssignment(url, categoryId));
-          await storageService.setAssignment(url, categoryId);
         }
 
         dispatch(actions.setLoading(false));
@@ -81,9 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const existingAssignment = await storageService.getAssignment(tab.url);
       const categoryId = existingAssignment ?? UNCATEGORIZED_ID;
       dispatch(actions.setAssignment(tab.url, categoryId));
-      if (!existingAssignment) {
-        await storageService.setAssignment(tab.url, categoryId);
-      }
+      // Only persist if there was a real stored assignment; don't write uncategorized junk
     });
 
     const unsubRemoved = tabService.onTabRemoved((tabId) => {
@@ -91,7 +94,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Note: We don't remove URL assignment - it should persist for future tabs with same URL
     });
 
-    const unsubUpdated = tabService.onTabUpdated((tabId, tab) => {
+    const unsubUpdated = tabService.onTabUpdated(async (tabId, tab) => {
+      // Transfer assignment when a tab navigates to a new URL
+      const oldTab = tabsRef.current.find((t) => t.id === tabId);
+      if (oldTab && oldTab.url !== tab.url) {
+        const isInternal = (url: string) =>
+          !url || url.startsWith('chrome://') || url.startsWith('about:');
+
+        if (!isInternal(oldTab.url) && !isInternal(tab.url)) {
+          const oldAssignment = await storageService.getAssignment(oldTab.url);
+          if (oldAssignment && oldAssignment !== UNCATEGORIZED_ID) {
+            dispatch(actions.setAssignment(tab.url, oldAssignment));
+            await storageService.setAssignment(tab.url, oldAssignment);
+            await storageService.removeAssignment(oldTab.url);
+          } else {
+            // No stored assignment — just set in-memory uncategorized
+            dispatch(actions.setAssignment(tab.url, UNCATEGORIZED_ID));
+          }
+        }
+      }
       dispatch(actions.updateTab(tabId, tab));
     });
 

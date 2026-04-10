@@ -61,12 +61,6 @@ class StorageService {
       data.assignments.push(assignment);
     }
 
-    // Limit assignments to prevent quota issues (keep most recent 1000)
-    if (data.assignments.length > 1000) {
-      data.assignments.sort((a, b) => b.assignedAt - a.assignedAt);
-      data.assignments = data.assignments.slice(0, 1000);
-    }
-
     await this.save(data);
   }
 
@@ -99,6 +93,15 @@ class StorageService {
     }
 
     await this.save(data);
+  }
+
+  async cleanupStaleAssignments(currentUrls: Set<string>): Promise<void> {
+    const data = await this.load();
+    const before = data.assignments.length;
+    data.assignments = data.assignments.filter((a) => currentUrls.has(a.url));
+    if (data.assignments.length !== before) {
+      await this.save(data);
+    }
   }
 
   async updateTabOrder(categoryId: string, tabIds: number[]): Promise<void> {
